@@ -1,0 +1,21 @@
+services:
+  db:
+    container_name: vpn-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vpn
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - vpn_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vpn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  vpn_pg_data:
