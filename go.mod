@@ -4,6 +4,8 @@ go 1.26.1
 
 require (
 	github.com/jackc/pgx/v5 v5.9.1
+	github.com/joho/godotenv v1.5.1
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.35.0
 	github.com/rubenv/sql-migrate v1.8.1
 )
