@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"vpn/pkg/config"
+	"vpn/pkg/db"
 	"vpn/pkg/logger"
 
 	"github.com/rs/zerolog/log"
@@ -21,7 +22,19 @@ func main() {
 
 	log.Info().Msg("starting vpn server")
 
-	_ = cfg // TODO: use cfg when initializing DB connection
+	database, err := db.Connect(cfg.DB.DSN())
+	if err != nil {
+		log.Fatal().Err(err).Msg("connect db")
+	}
+	defer database.Close()
+
+	log.Info().Msg("connected to database")
+
+	n, err := db.MigrateUp(database)
+	if err != nil {
+		log.Fatal().Err(err).Msg("run migrations")
+	}
+	log.Info().Int("count", n).Msg("migrations applied")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
