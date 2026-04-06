@@ -19,13 +19,13 @@ type Querier interface {
 	EnablePeer(ctx context.Context, id pgtype.UUID) error
 	GetPeer(ctx context.Context, id pgtype.UUID) (Peer, error)
 	GetPeerByPublicKey(ctx context.Context, publicKey string) (Peer, error)
+	GetPeerByUser(ctx context.Context, userID pgtype.UUID) (Peer, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	ListEnabledPeers(ctx context.Context) ([]Peer, error)
 	ListPeersByUser(ctx context.Context, userID pgtype.UUID) ([]Peer, error)
 	ListUsers(ctx context.Context) ([]User, error)
-	UpdatePeerAllowedIPs(ctx context.Context, arg UpdatePeerAllowedIPsParams) (Peer, error)
 	UpdateUserPublicKey(ctx context.Context, arg UpdateUserPublicKeyParams) (User, error)
 }
 
