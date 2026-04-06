@@ -1,4 +1,4 @@
-.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service
+.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint
 
 sqlc:
 	docker run --rm -v $(PWD):/src -w /src sqlc/sqlc generate
@@ -18,3 +18,10 @@ test: test-migration
 
 test-migration:
 	go test -v -count=1 ./pkg/db/...
+
+lint:
+	docker run --rm \
+		-v $(PWD):/app \
+		-w /app \
+		golangci/golangci-lint:latest \
+		golangci-lint run ./...
