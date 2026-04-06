@@ -60,7 +60,11 @@ func runMigrations(dsn string, direction migrate.MigrationDirection) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect db")
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Error().Err(err).Msg("close db")
+		}
+	}()
 
 	n, err := db.RunMigrations(database, db.MigrationsDir, direction)
 	if err != nil {
