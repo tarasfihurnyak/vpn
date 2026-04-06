@@ -26,7 +26,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect db")
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Error().Err(err).Msg("close db")
+		}
+	}()
 
 	log.Info().Msg("connected to database")
 

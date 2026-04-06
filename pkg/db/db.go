@@ -23,7 +23,7 @@ func Connect(dsn string) (*sql.DB, error) {
 	db.SetConnMaxIdleTime(1 * time.Minute)
 
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
