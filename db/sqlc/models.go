@@ -5,18 +5,31 @@
 package db
 
 import (
+	"net/netip"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Peer struct {
-	ID         pgtype.UUID        `json:"id"`
-	UserID     pgtype.UUID        `json:"user_id"`
-	Name       string             `json:"name"`
-	PublicKey  string             `json:"public_key"`
-	AllowedIps []string           `json:"allowed_ips"`
-	Enabled    bool               `json:"enabled"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Name      string             `json:"name"`
+	PublicKey string             `json:"public_key"`
+	IpAddress netip.Addr         `json:"ip_address"`
+	Enabled   bool               `json:"enabled"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ServerConfig struct {
+	ID            pgtype.UUID        `json:"id"`
+	InterfaceName string             `json:"interface_name"`
+	PublicKey     string             `json:"public_key"`
+	ListenPort    int32              `json:"listen_port"`
+	IpPool        netip.Prefix       `json:"ip_pool"`
+	Dns           []string           `json:"dns"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {

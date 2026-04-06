@@ -7,21 +7,22 @@ package db
 
 import (
 	"context"
+	"net/netip"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPeer = `-- name: CreatePeer :one
-INSERT INTO peers (user_id, name, public_key, allowed_ips)
+INSERT INTO peers (user_id, name, public_key, ip_address)
 VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, name, public_key, allowed_ips, enabled, created_at, updated_at
+RETURNING id, user_id, name, public_key, ip_address, enabled, created_at, updated_at
 `
 
 type CreatePeerParams struct {
-	UserID     pgtype.UUID `json:"user_id"`
-	Name       string      `json:"name"`
-	PublicKey  string      `json:"public_key"`
-	AllowedIps []string    `json:"allowed_ips"`
+	UserID    pgtype.UUID `json:"user_id"`
+	Name      string      `json:"name"`
+	PublicKey string      `json:"public_key"`
+	IpAddress netip.Addr  `json:"ip_address"`
 }
 
 func (q *Queries) CreatePeer(ctx context.Context, arg CreatePeerParams) (Peer, error) {
@@ -29,7 +30,7 @@ func (q *Queries) CreatePeer(ctx context.Context, arg CreatePeerParams) (Peer, e
 		arg.UserID,
 		arg.Name,
 		arg.PublicKey,
-		arg.AllowedIps,
+		arg.IpAddress,
 	)
 	var i Peer
 	err := row.Scan(
@@ -37,7 +38,7 @@ func (q *Queries) CreatePeer(ctx context.Context, arg CreatePeerParams) (Peer, e
 		&i.UserID,
 		&i.Name,
 		&i.PublicKey,
-		&i.AllowedIps,
+		&i.IpAddress,
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -73,7 +74,7 @@ func (q *Queries) EnablePeer(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getPeer = `-- name: GetPeer :one
-SELECT id, user_id, name, public_key, allowed_ips, enabled, created_at, updated_at FROM peers WHERE id = $1
+SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE id = $1
 `
 
 func (q *Queries) GetPeer(ctx context.Context, id pgtype.UUID) (Peer, error) {
@@ -84,7 +85,7 @@ func (q *Queries) GetPeer(ctx context.Context, id pgtype.UUID) (Peer, error) {
 		&i.UserID,
 		&i.Name,
 		&i.PublicKey,
-		&i.AllowedIps,
+		&i.IpAddress,
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -93,7 +94,7 @@ func (q *Queries) GetPeer(ctx context.Context, id pgtype.UUID) (Peer, error) {
 }
 
 const getPeerByPublicKey = `-- name: GetPeerByPublicKey :one
-SELECT id, user_id, name, public_key, allowed_ips, enabled, created_at, updated_at FROM peers WHERE public_key = $1
+SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE public_key = $1
 `
 
 func (q *Queries) GetPeerByPublicKey(ctx context.Context, publicKey string) (Peer, error) {
@@ -104,7 +105,27 @@ func (q *Queries) GetPeerByPublicKey(ctx context.Context, publicKey string) (Pee
 		&i.UserID,
 		&i.Name,
 		&i.PublicKey,
-		&i.AllowedIps,
+		&i.IpAddress,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPeerByUser = `-- name: GetPeerByUser :one
+SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE user_id = $1
+`
+
+func (q *Queries) GetPeerByUser(ctx context.Context, userID pgtype.UUID) (Peer, error) {
+	row := q.db.QueryRow(ctx, getPeerByUser, userID)
+	var i Peer
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.PublicKey,
+		&i.IpAddress,
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -113,7 +134,7 @@ func (q *Queries) GetPeerByPublicKey(ctx context.Context, publicKey string) (Pee
 }
 
 const listEnabledPeers = `-- name: ListEnabledPeers :many
-SELECT id, user_id, name, public_key, allowed_ips, enabled, created_at, updated_at FROM peers WHERE enabled = TRUE ORDER BY created_at
+SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE enabled = TRUE ORDER BY created_at
 `
 
 func (q *Queries) ListEnabledPeers(ctx context.Context) ([]Peer, error) {
@@ -130,7 +151,7 @@ func (q *Queries) ListEnabledPeers(ctx context.Context) ([]Peer, error) {
 			&i.UserID,
 			&i.Name,
 			&i.PublicKey,
-			&i.AllowedIps,
+			&i.IpAddress,
 			&i.Enabled,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -146,7 +167,7 @@ func (q *Queries) ListEnabledPeers(ctx context.Context) ([]Peer, error) {
 }
 
 const listPeersByUser = `-- name: ListPeersByUser :many
-SELECT id, user_id, name, public_key, allowed_ips, enabled, created_at, updated_at FROM peers WHERE user_id = $1 ORDER BY created_at
+SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE user_id = $1 ORDER BY created_at
 `
 
 func (q *Queries) ListPeersByUser(ctx context.Context, userID pgtype.UUID) ([]Peer, error) {
@@ -163,7 +184,7 @@ func (q *Queries) ListPeersByUser(ctx context.Context, userID pgtype.UUID) ([]Pe
 			&i.UserID,
 			&i.Name,
 			&i.PublicKey,
-			&i.AllowedIps,
+			&i.IpAddress,
 			&i.Enabled,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -176,31 +197,4 @@ func (q *Queries) ListPeersByUser(ctx context.Context, userID pgtype.UUID) ([]Pe
 		return nil, err
 	}
 	return items, nil
-}
-
-const updatePeerAllowedIPs = `-- name: UpdatePeerAllowedIPs :one
-UPDATE peers SET allowed_ips = $1, updated_at = NOW()
-WHERE id = $2
-RETURNING id, user_id, name, public_key, allowed_ips, enabled, created_at, updated_at
-`
-
-type UpdatePeerAllowedIPsParams struct {
-	AllowedIps []string    `json:"allowed_ips"`
-	ID         pgtype.UUID `json:"id"`
-}
-
-func (q *Queries) UpdatePeerAllowedIPs(ctx context.Context, arg UpdatePeerAllowedIPsParams) (Peer, error) {
-	row := q.db.QueryRow(ctx, updatePeerAllowedIPs, arg.AllowedIps, arg.ID)
-	var i Peer
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Name,
-		&i.PublicKey,
-		&i.AllowedIps,
-		&i.Enabled,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
