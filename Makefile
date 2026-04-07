@@ -14,10 +14,10 @@ migrate-down:
 	go run ./cmd/migrate down
 
 test: test-migration
-	go test -v -count=1 $(shell go list ./... | grep -v 'vpn/pkg/db')
+	go test -v -race -count=1 $(shell go list ./... | grep -v 'vpn/pkg/db')
 
 test-migration:
-	go test -v -count=1 ./pkg/db/...
+	go test -v -race -count=1 ./pkg/db/...
 
 lint:
 	docker run --rm \
