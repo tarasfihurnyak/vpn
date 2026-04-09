@@ -10,6 +10,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AllowedIp struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Cidr      netip.Prefix       `json:"cidr"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Peer struct {
 	ID        pgtype.UUID        `json:"id"`
 	UserID    pgtype.UUID        `json:"user_id"`

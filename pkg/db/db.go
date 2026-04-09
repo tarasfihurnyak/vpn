@@ -9,7 +9,7 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-const MigrationsDir = "db/migrations"
+const MigrationsDir = "internal/db/migrations"
 
 func Connect(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
