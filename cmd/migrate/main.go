@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"vpn/pkg/db"
 	"vpn/pkg/config"
+	"vpn/pkg/db"
 	"vpn/pkg/logger"
 
 	"github.com/rs/zerolog/log"
