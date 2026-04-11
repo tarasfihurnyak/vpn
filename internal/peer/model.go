@@ -1,11 +1,14 @@
 package peer
 
 import (
+	"errors"
 	"net/netip"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+var ErrNotFound = errors.New("peer not found")
 
 type Peer struct {
 	ID        pgtype.UUID `json:"id"`

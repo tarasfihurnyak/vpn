@@ -11,7 +11,7 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 
 	pkgdb "vpn/pkg/db"
-	"vpn/pkg/testhelpers"
+	pkgtest "vpn/pkg/test"
 )
 
 var globalPool *pgxpool.Pool
@@ -19,7 +19,7 @@ var globalPool *pgxpool.Pool
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	dsn, stop, err := testhelpers.StartPostgres(ctx)
+	dsn, stop, err := pkgtest.StartPostgres(ctx)
 	if err != nil {
 		log.Fatalf("start postgres: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("connect for migrations: %v", err)
 	}
-	migrationsDir := filepath.Join(testhelpers.MustFindRepoRoot(), pkgdb.MigrationsDir)
+	migrationsDir := filepath.Join(pkgtest.MustFindRepoRoot(), pkgdb.MigrationsDir)
 	if _, err := pkgdb.RunMigrations(sqlDB, migrationsDir, migrate.Up); err != nil {
 		log.Fatalf("run migrations: %v", err)
 	}

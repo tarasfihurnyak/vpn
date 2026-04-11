@@ -2,8 +2,10 @@ package peer
 
 import (
 	"context"
+	"errors"
 	"net/netip"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	db "vpn/internal/db/sqlc"
@@ -46,6 +48,9 @@ func (s *Service) Create(ctx context.Context, userID pgtype.UUID, name, publicKe
 func (s *Service) GetByID(ctx context.Context, id pgtype.UUID) (Peer, error) {
 	p, err := s.q.GetPeer(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Peer{}, ErrNotFound
+		}
 		return Peer{}, err
 	}
 	return toModel(p), nil

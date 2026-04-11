@@ -42,8 +42,13 @@ func StartPostgres(ctx context.Context) (dsn string, stop func(), err error) {
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),
 		testcontainers.WithWaitStrategy(
-			wait.ForListeningPort("5432/tcp").
-				WithStartupTimeout(30*time.Second),
+			wait.ForAll(
+				wait.ForListeningPort("5432/tcp").
+					WithStartupTimeout(30*time.Second),
+				wait.ForLog("database system is ready to accept connections").
+					WithStartupTimeout(30*time.Second).
+					WithPollInterval(200*time.Millisecond),
+			),
 		),
 	)
 	if err != nil {

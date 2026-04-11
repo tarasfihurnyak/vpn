@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pkgdb "vpn/pkg/db"
-	"vpn/pkg/testhelpers"
+	pkgtest "vpn/pkg/test"
 )
 
 func TestMigrateUpDown(t *testing.T) {
 	ctx := context.Background()
 
-	dsn, stop, err := testhelpers.StartPostgres(ctx)
+	dsn, stop, err := pkgtest.StartPostgres(ctx)
 	require.NoError(t, err)
 	t.Cleanup(stop)
 
@@ -24,7 +24,7 @@ func TestMigrateUpDown(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 
-	migrationsDir := filepath.Join(testhelpers.MustFindRepoRoot(), pkgdb.MigrationsDir)
+	migrationsDir := filepath.Join(pkgtest.MustFindRepoRoot(), pkgdb.MigrationsDir)
 
 	n, err := pkgdb.RunMigrations(sqlDB, migrationsDir, migrate.Up)
 	require.NoError(t, err)

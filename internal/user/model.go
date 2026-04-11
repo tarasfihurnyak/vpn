@@ -1,10 +1,13 @@
 package user
 
 import (
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+var ErrNotFound = errors.New("user not found")
 
 type User struct {
 	ID        pgtype.UUID `json:"id"`
