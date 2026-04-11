@@ -2,7 +2,9 @@ package user
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	db "vpn/internal/db/sqlc"
@@ -41,6 +43,9 @@ func (s *Service) Create(ctx context.Context, username, email string) (User, err
 func (s *Service) GetByID(ctx context.Context, id pgtype.UUID) (User, error) {
 	u, err := s.q.GetUser(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return User{}, ErrNotFound
+		}
 		return User{}, err
 	}
 	return toModel(u), nil
