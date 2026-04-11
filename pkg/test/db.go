@@ -48,6 +48,11 @@ func StartPostgres(ctx context.Context) (dsn string, stop func(), err error) {
 				wait.ForLog("database system is ready to accept connections").
 					WithStartupTimeout(30*time.Second).
 					WithPollInterval(200*time.Millisecond),
+				// wait.ForSQL("5432/tcp", "pgx", func(host string, port nat.Port) string {
+				// 	return fmt.Sprintf("postgres://postgres:postgres@%s:%s/vpn_test?sslmode=disable", host, port.Port())
+				// }).
+				// 	WithStartupTimeout(30*time.Second).
+				// 	WithPollInterval(200*time.Millisecond),
 			),
 		),
 	)
