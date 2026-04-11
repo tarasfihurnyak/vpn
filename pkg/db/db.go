@@ -9,7 +9,10 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-const MigrationsDir = "internal/db/migrations"
+const (
+	MigrationsDir   = "internal/db/migrations"
+	maxPingAttempts = 5
+)
 
 func Connect(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
@@ -22,12 +25,17 @@ func Connect(dsn string) (*sql.DB, error) {
 	db.SetConnMaxLifetime(5 * time.Minute)
 	db.SetConnMaxIdleTime(1 * time.Minute)
 
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("ping: %w", err)
+	var pingErr error
+	for i := 0; i < maxPingAttempts; i++ {
+		pingErr = db.Ping()
+		if pingErr == nil {
+			return db, nil
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
 
-	return db, nil
+	_ = db.Close()
+	return nil, fmt.Errorf("ping: %w", pingErr)
 }
 
 func RunMigrations(database *sql.DB, dir string, direction migrate.MigrationDirection) (int, error) {
