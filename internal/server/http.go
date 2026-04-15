@@ -17,6 +17,10 @@ func NewHTTP(users *user.Handler, peers *peer.Handler) http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.StripSlashes)
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	r.Post("/users", users.Create)
 	r.Get("/users/{id}", users.GetByID)
 

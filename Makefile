@@ -1,4 +1,25 @@
-.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint
+.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint tls-setup up
+
+tls-setup:
+	@command -v mkcert >/dev/null 2>&1 || { \
+		echo "mkcert not found."; \
+		echo "Install it:"; \
+		echo "  macOS: brew install mkcert"; \
+		echo "  Linux: https://github.com/FiloSottile/mkcert/releases"; \
+		exit 1; \
+	}
+	@mkdir -p certs
+	@if [ -f certs/cert.pem ]; then \
+		echo "TLS certificates already exist"; \
+	else \
+		echo "Generating TLS certificates..."; \
+		mkcert -install; \
+		mkcert -key-file certs/key.pem -cert-file certs/cert.pem localhost 127.0.0.1 ::1; \
+		echo "Certificates generated in certs/"; \
+	fi
+
+up: tls-setup
+	docker compose up --build -d
 
 sqlc:
 	docker run --rm -v $(PWD):/src -w /src sqlc/sqlc generate
