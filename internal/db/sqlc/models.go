@@ -6,44 +6,55 @@ package db
 
 import (
 	"net/netip"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type AllowedIp struct {
-	ID        pgtype.UUID        `json:"id"`
-	UserID    pgtype.UUID        `json:"user_id"`
-	Cidr      netip.Prefix       `json:"cidr"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ID        uuid.UUID    `json:"id"`
+	UserID    uuid.UUID    `json:"user_id"`
+	Cidr      netip.Prefix `json:"cidr"`
+	CreatedAt time.Time    `json:"created_at"`
 }
 
 type Peer struct {
-	ID        pgtype.UUID        `json:"id"`
-	UserID    pgtype.UUID        `json:"user_id"`
-	Name      string             `json:"name"`
-	PublicKey string             `json:"public_key"`
-	IpAddress netip.Addr         `json:"ip_address"`
-	Enabled   bool               `json:"enabled"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	Name      string     `json:"name"`
+	PublicKey string     `json:"public_key"`
+	IpAddress netip.Addr `json:"ip_address"`
+	Enabled   bool       `json:"enabled"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+type RefreshToken struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	TokenHash string     `json:"token_hash"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	RevokedAt *time.Time `json:"revoked_at"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 type ServerConfig struct {
-	ID            pgtype.UUID        `json:"id"`
-	InterfaceName string             `json:"interface_name"`
-	PublicKey     string             `json:"public_key"`
-	ListenPort    int32              `json:"listen_port"`
-	IpPool        netip.Prefix       `json:"ip_pool"`
-	Dns           []string           `json:"dns"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID            uuid.UUID    `json:"id"`
+	InterfaceName string       `json:"interface_name"`
+	PublicKey     string       `json:"public_key"`
+	ListenPort    int32        `json:"listen_port"`
+	IpPool        netip.Prefix `json:"ip_pool"`
+	Dns           []string     `json:"dns"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 }
 
 type User struct {
-	ID        pgtype.UUID        `json:"id"`
-	Username  string             `json:"username"`
-	Email     string             `json:"email"`
-	PublicKey pgtype.Text        `json:"public_key"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	PublicKey    *string   `json:"public_key"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	PasswordHash string    `json:"password_hash"`
 }

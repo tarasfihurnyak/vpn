@@ -11,7 +11,7 @@ import (
 
 func CreateUser(t *testing.T, svc *user.Service, ctx context.Context, name string) user.User {
 	t.Helper()
-	u, err := svc.Create(ctx, name, name+"@example.com")
+	u, err := svc.Create(ctx, name, name+"@example.com", "testpassword123")
 	require.NoError(t, err)
 	return u
 }

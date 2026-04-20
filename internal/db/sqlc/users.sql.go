@@ -8,23 +8,23 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (username, email, public_key)
+INSERT INTO users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, public_key, created_at, updated_at
+RETURNING id, username, email, public_key, created_at, updated_at, password_hash
 `
 
 type CreateUserParams struct {
-	Username  string      `json:"username"`
-	Email     string      `json:"email"`
-	PublicKey pgtype.Text `json:"public_key"`
+	Username     string `json:"username"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"password_hash"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.PublicKey)
+	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.PasswordHash)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -33,6 +33,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PublicKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
 	)
 	return i, err
 }
@@ -41,16 +42,16 @@ const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, email, public_key, created_at, updated_at FROM users WHERE id = $1
+SELECT id, username, email, public_key, created_at, updated_at, password_hash FROM users WHERE id = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
 	err := row.Scan(
@@ -60,12 +61,13 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.PublicKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, public_key, created_at, updated_at FROM users WHERE email = $1
+SELECT id, username, email, public_key, created_at, updated_at, password_hash FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -78,12 +80,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PublicKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, public_key, created_at, updated_at FROM users WHERE username = $1
+SELECT id, username, email, public_key, created_at, updated_at, password_hash FROM users WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -96,12 +99,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.PublicKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, public_key, created_at, updated_at FROM users ORDER BY created_at
+SELECT id, username, email, public_key, created_at, updated_at, password_hash FROM users ORDER BY created_at
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -120,6 +124,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PublicKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PasswordHash,
 		); err != nil {
 			return nil, err
 		}
@@ -134,12 +139,12 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 const updateUserPublicKey = `-- name: UpdateUserPublicKey :one
 UPDATE users SET public_key = $1, updated_at = NOW()
 WHERE id = $2
-RETURNING id, username, email, public_key, created_at, updated_at
+RETURNING id, username, email, public_key, created_at, updated_at, password_hash
 `
 
 type UpdateUserPublicKeyParams struct {
-	PublicKey pgtype.Text `json:"public_key"`
-	ID        pgtype.UUID `json:"id"`
+	PublicKey *string   `json:"public_key"`
+	ID        uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateUserPublicKey(ctx context.Context, arg UpdateUserPublicKeyParams) (User, error) {
@@ -152,6 +157,7 @@ func (q *Queries) UpdateUserPublicKey(ctx context.Context, arg UpdateUserPublicK
 		&i.PublicKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
 	)
 	return i, err
 }

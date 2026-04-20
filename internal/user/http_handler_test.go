@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	sqlcdb "vpn/internal/db/sqlc"
@@ -27,7 +26,7 @@ func newDeps(t *testing.T) deps {
 	tx, err := globalPool.Begin(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
-	svc := user.NewService(sqlcdb.New(tx))
+	svc := user.NewServiceWithMinBcryptCost(sqlcdb.New(tx))
 	return deps{ctx: ctx, h: user.NewHandler(svc), svc: svc}
 }
 
@@ -40,9 +39,10 @@ func TestUserHandler_Create(t *testing.T) {
 		expectedCode  int
 		expectedError bool
 	}{
-		{name: "ok", body: `{"username":"alice","email":"alice@example.com"}`, expectedCode: http.StatusCreated},
+		{name: "ok", body: `{"username":"alice","email":"alice@example.com","password":"password123"}`, expectedCode: http.StatusCreated},
 		{name: "invalid json", body: `{bad}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "missing fields", body: `{"username":"alice"}`, expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "short password", body: `{"username":"alice","email":"alice@example.com","password":"short"}`, expectedCode: http.StatusBadRequest, expectedError: true},
 	}
 
 	for _, tc := range tests {
@@ -51,17 +51,17 @@ func TestUserHandler_Create(t *testing.T) {
 
 			d.h.Create(rec, req)
 
-			assert.Equal(t, tc.expectedCode, rec.Code)
-			assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+			require.Equal(t, tc.expectedCode, rec.Code)
+			require.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			if tc.expectedError {
 				return
 			}
 
 			var got user.User
 			require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
-			assert.Equal(t, "alice", got.Username)
-			assert.Equal(t, "alice@example.com", got.Email)
-			assert.True(t, got.ID.Valid)
+			require.Equal(t, "alice", got.Username)
+			require.Equal(t, "alice@example.com", got.Email)
+			require.NotEqual(t, uuid.Nil, got.ID)
 		})
 	}
 }
@@ -70,9 +70,9 @@ func TestUserHandler_GetByID(t *testing.T) {
 	d := newDeps(t)
 
 	// preconditions
-	u, err := d.svc.Create(d.ctx, "bob", "bob@example.com")
+	u, err := d.svc.Create(d.ctx, "bob", "bob@example.com", "password123")
 	require.NoError(t, err)
-	existingID := uuid.UUID(u.ID.Bytes).String()
+	existingID := u.ID.String()
 
 	tests := []struct {
 		name          string
@@ -92,16 +92,16 @@ func TestUserHandler_GetByID(t *testing.T) {
 
 			d.h.GetByID(rec, req)
 
-			assert.Equal(t, tc.expectedCode, rec.Code)
-			assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+			require.Equal(t, tc.expectedCode, rec.Code)
+			require.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			if tc.expectedError {
 				return
 			}
 
 			var got user.User
 			require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
-			assert.Equal(t, u.ID, got.ID)
-			assert.Equal(t, "bob", got.Username)
+			require.Equal(t, u.ID, got.ID)
+			require.Equal(t, "bob", got.Username)
 		})
 	}
 }

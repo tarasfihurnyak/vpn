@@ -4,13 +4,23 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	DB DBConfig
+	DB  DBConfig
+	JWT JWTConfig
+}
+
+type JWTConfig struct {
+	PrivateKeyFile string        `envconfig:"JWT_PRIVATE_KEY_FILE" required:"true"`
+	AccessTTL      time.Duration `envconfig:"JWT_ACCESS_TTL"       default:"15m"`
+	RefreshTTL     time.Duration `envconfig:"JWT_REFRESH_TTL"      default:"168h"` // 7 days
+	SecureCookie   bool          `envconfig:"JWT_SECURE_COOKIE"    default:"true"`
+	AllowedOrigins []string      `envconfig:"JWT_ALLOWED_ORIGINS"  default:"http://localhost"` // Example: http://localhost,https://admin.example.com
 }
 
 type DBConfig struct {

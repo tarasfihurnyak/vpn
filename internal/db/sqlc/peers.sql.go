@@ -9,7 +9,7 @@ import (
 	"context"
 	"net/netip"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createPeer = `-- name: CreatePeer :one
@@ -19,10 +19,10 @@ RETURNING id, user_id, name, public_key, ip_address, enabled, created_at, update
 `
 
 type CreatePeerParams struct {
-	UserID    pgtype.UUID `json:"user_id"`
-	Name      string      `json:"name"`
-	PublicKey string      `json:"public_key"`
-	IpAddress netip.Addr  `json:"ip_address"`
+	UserID    uuid.UUID  `json:"user_id"`
+	Name      string     `json:"name"`
+	PublicKey string     `json:"public_key"`
+	IpAddress netip.Addr `json:"ip_address"`
 }
 
 func (q *Queries) CreatePeer(ctx context.Context, arg CreatePeerParams) (Peer, error) {
@@ -50,7 +50,7 @@ const deletePeer = `-- name: DeletePeer :exec
 DELETE FROM peers WHERE id = $1
 `
 
-func (q *Queries) DeletePeer(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DeletePeer(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deletePeer, id)
 	return err
 }
@@ -59,7 +59,7 @@ const disablePeer = `-- name: DisablePeer :exec
 UPDATE peers SET enabled = FALSE, updated_at = NOW() WHERE id = $1
 `
 
-func (q *Queries) DisablePeer(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DisablePeer(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, disablePeer, id)
 	return err
 }
@@ -68,7 +68,7 @@ const enablePeer = `-- name: EnablePeer :exec
 UPDATE peers SET enabled = TRUE, updated_at = NOW() WHERE id = $1
 `
 
-func (q *Queries) EnablePeer(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) EnablePeer(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, enablePeer, id)
 	return err
 }
@@ -77,7 +77,7 @@ const getPeer = `-- name: GetPeer :one
 SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE id = $1
 `
 
-func (q *Queries) GetPeer(ctx context.Context, id pgtype.UUID) (Peer, error) {
+func (q *Queries) GetPeer(ctx context.Context, id uuid.UUID) (Peer, error) {
 	row := q.db.QueryRow(ctx, getPeer, id)
 	var i Peer
 	err := row.Scan(
@@ -117,7 +117,7 @@ const getPeerByUser = `-- name: GetPeerByUser :one
 SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE user_id = $1
 `
 
-func (q *Queries) GetPeerByUser(ctx context.Context, userID pgtype.UUID) (Peer, error) {
+func (q *Queries) GetPeerByUser(ctx context.Context, userID uuid.UUID) (Peer, error) {
 	row := q.db.QueryRow(ctx, getPeerByUser, userID)
 	var i Peer
 	err := row.Scan(
@@ -170,7 +170,7 @@ const listPeersByUser = `-- name: ListPeersByUser :many
 SELECT id, user_id, name, public_key, ip_address, enabled, created_at, updated_at FROM peers WHERE user_id = $1 ORDER BY created_at
 `
 
-func (q *Queries) ListPeersByUser(ctx context.Context, userID pgtype.UUID) ([]Peer, error) {
+func (q *Queries) ListPeersByUser(ctx context.Context, userID uuid.UUID) ([]Peer, error) {
 	rows, err := q.db.Query(ctx, listPeersByUser, userID)
 	if err != nil {
 		return nil, err

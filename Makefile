@@ -1,4 +1,9 @@
-.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint tls-setup up
+.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint tls-setup up gen-jwt-key
+
+gen-jwt-key:
+	@mkdir -p certs
+	@openssl ecparam -name prime256v1 -genkey -noout -out certs/jwt_private.pem
+	@echo "Generated ES256 private key: certs/jwt_private.pem"
 
 tls-setup:
 	@command -v mkcert >/dev/null 2>&1 || { \

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 
 	pkghttp "vpn/pkg/http"
 )
@@ -22,6 +22,7 @@ func NewHandler(svc *Service) *Handler {
 type createRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -31,12 +32,17 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Username == "" || req.Email == "" {
-		pkghttp.WriteError(w, http.StatusBadRequest, "username and email are required")
+	if req.Username == "" || req.Email == "" || req.Password == "" {
+		pkghttp.WriteError(w, http.StatusBadRequest, "username, email and password are required")
 		return
 	}
 
-	u, err := h.svc.Create(r.Context(), req.Username, req.Email)
+	if len(req.Password) < 8 {
+		pkghttp.WriteError(w, http.StatusBadRequest, "password must be at least 8 characters")
+		return
+	}
+
+	u, err := h.svc.Create(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		pkghttp.WriteError(w, http.StatusInternalServerError, "internal server error")
 		return
@@ -46,8 +52,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	var id pgtype.UUID
-	if err := id.Scan(chi.URLParam(r, "id")); err != nil {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
 		pkghttp.WriteError(w, http.StatusBadRequest, "invalid id")
 		return
 	}

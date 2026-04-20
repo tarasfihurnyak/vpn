@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	sqlcdb "vpn/internal/db/sqlc"
@@ -33,7 +32,7 @@ func newDeps(t *testing.T) deps {
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	q := sqlcdb.New(tx)
 	peerSvc := peer.NewService(q)
-	userSvc := user.NewService(q)
+	userSvc := user.NewServiceWithMinBcryptCost(q)
 	return deps{ctx: ctx, h: peer.NewHandler(peerSvc), peers: peerSvc, users: userSvc}
 }
 
@@ -43,9 +42,9 @@ func TestPeerHandler_Create(t *testing.T) {
 	// preconditions
 	u := testutil.CreateUser(t, d.users, d.ctx, "create-owner")
 	validBody := fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"pubkey-abc","ip_address":"10.0.0.2"}`,
-		uuid.UUID(u.ID.Bytes).String())
+		u.ID.String())
 	badIPBody := fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"k","ip_address":"not-an-ip"}`,
-		uuid.UUID(u.ID.Bytes).String())
+		u.ID.String())
 
 	tests := []struct {
 		name          string
@@ -66,18 +65,18 @@ func TestPeerHandler_Create(t *testing.T) {
 
 			d.h.Create(rec, req)
 
-			assert.Equal(t, tc.expectedCode, rec.Code)
-			assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+			require.Equal(t, tc.expectedCode, rec.Code)
+			require.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			if tc.expectedError {
 				return
 			}
 
 			var got peer.Peer
 			require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
-			assert.Equal(t, "laptop", got.Name)
-			assert.Equal(t, u.ID, got.UserID)
-			assert.Equal(t, "10.0.0.2", got.IPAddress.String())
-			assert.True(t, got.Enabled)
+			require.Equal(t, "laptop", got.Name)
+			require.Equal(t, u.ID, got.UserID)
+			require.Equal(t, "10.0.0.2", got.IPAddress.String())
+			require.True(t, got.Enabled)
 		})
 	}
 }
@@ -89,7 +88,7 @@ func TestPeerHandler_GetByID(t *testing.T) {
 	u := testutil.CreateUser(t, d.users, d.ctx, "getbyid-owner")
 	p, err := d.peers.Create(d.ctx, u.ID, "phone", "pubkey-phone", netip.MustParseAddr("10.0.0.3"))
 	require.NoError(t, err)
-	existingID := uuid.UUID(p.ID.Bytes).String()
+	existingID := p.ID.String()
 
 	tests := []struct {
 		name          string
@@ -109,16 +108,16 @@ func TestPeerHandler_GetByID(t *testing.T) {
 
 			d.h.GetByID(rec, req)
 
-			assert.Equal(t, tc.expectedCode, rec.Code)
-			assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+			require.Equal(t, tc.expectedCode, rec.Code)
+			require.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			if tc.expectedError {
 				return
 			}
 
 			var got peer.Peer
 			require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
-			assert.Equal(t, p.ID, got.ID)
-			assert.Equal(t, "phone", got.Name)
+			require.Equal(t, p.ID, got.ID)
+			require.Equal(t, "phone", got.Name)
 		})
 	}
 }
