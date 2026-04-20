@@ -11,7 +11,7 @@ SELECT * FROM users WHERE email = $1;
 SELECT * FROM users ORDER BY created_at;
 
 -- name: CreateUser :one
-INSERT INTO users (username, email, public_key)
+INSERT INTO users (username, email, password_hash)
 VALUES ($1, $2, $3)
 RETURNING *;
 

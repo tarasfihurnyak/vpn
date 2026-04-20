@@ -3,36 +3,55 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
+	"golang.org/x/crypto/bcrypt"
 
 	db "vpn/internal/db/sqlc"
 )
 
 type Service struct {
-	q db.Querier
+	q          db.Querier
+	bcryptCost int
 }
 
 func NewService(q db.Querier) *Service {
-	return &Service{q: q}
+	return &Service{q: q, bcryptCost: bcrypt.DefaultCost}
+}
+
+// NewServiceWithMinBcryptCost is a test helper that creates a Service with bcrypt.MinCost to speed up tests
+func NewServiceWithMinBcryptCost(q db.Querier) *Service {
+	return &Service{q: q, bcryptCost: bcrypt.MinCost}
 }
 
 func toModel(u db.User) User {
+	var pk string
+	if u.PublicKey != nil {
+		pk = *u.PublicKey
+	}
 	return User{
 		ID:        u.ID,
 		Username:  u.Username,
 		Email:     u.Email,
-		PublicKey: u.PublicKey.String,
-		CreatedAt: u.CreatedAt.Time,
-		UpdatedAt: u.UpdatedAt.Time,
+		PublicKey: pk,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 	}
 }
 
-func (s *Service) Create(ctx context.Context, username, email string) (User, error) {
+func (s *Service) Create(ctx context.Context, username, email, password string) (User, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), s.bcryptCost)
+	if err != nil {
+		return User{}, fmt.Errorf("hash password: %w", err)
+	}
+
 	u, err := s.q.CreateUser(ctx, db.CreateUserParams{
-		Username: username,
-		Email:    email,
+		Username:     username,
+		Email:        email,
+		PasswordHash: string(hash),
 	})
 	if err != nil {
 		return User{}, err
@@ -40,7 +59,31 @@ func (s *Service) Create(ctx context.Context, username, email string) (User, err
 	return toModel(u), nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id pgtype.UUID) (User, error) {
+// Authenticate looks up a user by email or username and verifies the password.
+func (s *Service) Authenticate(ctx context.Context, login, password string) (User, error) {
+	var dbUser db.User
+	var err error
+
+	if strings.Contains(login, "@") {
+		dbUser, err = s.q.GetUserByEmail(ctx, login)
+	} else {
+		dbUser, err = s.q.GetUserByUsername(ctx, login)
+	}
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return User{}, ErrInvalidCredentials
+		}
+		return User{}, fmt.Errorf("get user: %w", err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(dbUser.PasswordHash), []byte(password)); err != nil {
+		return User{}, ErrInvalidCredentials
+	}
+
+	return toModel(dbUser), nil
+}
+
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (User, error) {
 	u, err := s.q.GetUser(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -79,10 +122,10 @@ func (s *Service) List(ctx context.Context) ([]User, error) {
 	return result, nil
 }
 
-func (s *Service) UpdatePublicKey(ctx context.Context, id pgtype.UUID, publicKey string) (User, error) {
+func (s *Service) UpdatePublicKey(ctx context.Context, id uuid.UUID, publicKey string) (User, error) {
 	u, err := s.q.UpdateUserPublicKey(ctx, db.UpdateUserPublicKeyParams{
 		ID:        id,
-		PublicKey: pgtype.Text{String: publicKey, Valid: true},
+		PublicKey: &publicKey,
 	})
 	if err != nil {
 		return User{}, err
@@ -90,6 +133,6 @@ func (s *Service) UpdatePublicKey(ctx context.Context, id pgtype.UUID, publicKey
 	return toModel(u), nil
 }
 
-func (s *Service) Delete(ctx context.Context, id pgtype.UUID) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.q.DeleteUser(ctx, id)
 }

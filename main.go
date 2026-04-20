@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 
+	"vpn/internal/auth"
 	sqlcdb "vpn/internal/db/sqlc"
 	"vpn/internal/peer"
 	"vpn/internal/server"
@@ -30,6 +31,11 @@ func main() {
 	}
 
 	log.Info().Msg("starting vpn server")
+
+	ecKey, err := auth.LoadPrivateKey(cfg.JWT.PrivateKeyFile)
+	if err != nil {
+		log.Fatal().Err(err).Msg("load JWT private key")
+	}
 
 	sqlDB, err := db.Connect(cfg.DB.DSN())
 	if err != nil {
@@ -54,12 +60,18 @@ func main() {
 	defer pool.Close()
 
 	q := sqlcdb.New(pool)
-	userHandler := user.NewHandler(user.NewService(q))
+
+	userSvc := user.NewService(q)
+	authSvc := auth.NewService(userSvc, q, ecKey, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
+
+	userHandler := user.NewHandler(userSvc)
 	peerHandler := peer.NewHandler(peer.NewService(q))
+	authHandler := auth.NewHandler(authSvc, cfg.JWT.SecureCookie)
+
 	addr := ":8080"
 	httpSrv := &http.Server{
 		Addr:         addr,
-		Handler:      server.NewHTTP(userHandler, peerHandler),
+		Handler:      server.NewHTTP(userHandler, peerHandler, authHandler, authSvc.Middleware, cfg.JWT.AllowedOrigins),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

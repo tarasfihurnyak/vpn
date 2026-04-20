@@ -7,25 +7,30 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreatePeer(ctx context.Context, arg CreatePeerParams) (Peer, error)
+	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeletePeer(ctx context.Context, id pgtype.UUID) error
-	DeleteUser(ctx context.Context, id pgtype.UUID) error
-	DisablePeer(ctx context.Context, id pgtype.UUID) error
-	EnablePeer(ctx context.Context, id pgtype.UUID) error
-	GetPeer(ctx context.Context, id pgtype.UUID) (Peer, error)
+	DeleteExpiredRefreshTokens(ctx context.Context) error
+	DeletePeer(ctx context.Context, id uuid.UUID) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	DisablePeer(ctx context.Context, id uuid.UUID) error
+	EnablePeer(ctx context.Context, id uuid.UUID) error
+	GetPeer(ctx context.Context, id uuid.UUID) (Peer, error)
 	GetPeerByPublicKey(ctx context.Context, publicKey string) (Peer, error)
-	GetPeerByUser(ctx context.Context, userID pgtype.UUID) (Peer, error)
-	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
+	GetPeerByUser(ctx context.Context, userID uuid.UUID) (Peer, error)
+	GetRefreshToken(ctx context.Context, tokenHash string) (RefreshToken, error)
+	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	ListEnabledPeers(ctx context.Context) ([]Peer, error)
-	ListPeersByUser(ctx context.Context, userID pgtype.UUID) ([]Peer, error)
+	ListPeersByUser(ctx context.Context, userID uuid.UUID) ([]Peer, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	UpdateUserPublicKey(ctx context.Context, arg UpdateUserPublicKeyParams) (User, error)
 }
 

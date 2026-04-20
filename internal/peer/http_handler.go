@@ -7,7 +7,7 @@ import (
 	"net/netip"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 
 	pkghttp "vpn/pkg/http"
 )
@@ -39,8 +39,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userID pgtype.UUID
-	if err := userID.Scan(req.UserID); err != nil {
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
 		pkghttp.WriteError(w, http.StatusBadRequest, "invalid user_id")
 		return
 	}
@@ -61,8 +61,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	var id pgtype.UUID
-	if err := id.Scan(chi.URLParam(r, "id")); err != nil {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
 		pkghttp.WriteError(w, http.StatusBadRequest, "invalid id")
 		return
 	}
