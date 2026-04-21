@@ -33,6 +33,11 @@ type loginRequest struct {
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			pkghttp.WriteError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
 		pkghttp.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

@@ -49,6 +49,7 @@ func TestPeerHandler_Create(t *testing.T) {
 	tests := []struct {
 		name          string
 		body          string
+		bodyLimit     int64
 		expectedCode  int
 		expectedError bool
 	}{
@@ -57,11 +58,15 @@ func TestPeerHandler_Create(t *testing.T) {
 		{name: "missing fields", body: `{"name":"laptop"}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "invalid user_id", body: `{"user_id":"not-a-uuid","name":"laptop","public_key":"k","ip_address":"10.0.0.1"}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "invalid ip_address", body: badIPBody, expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "body too large", body: validBody, bodyLimit: 1, expectedCode: http.StatusRequestEntityTooLarge, expectedError: true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			req, rec := testutil.NewJSONRequest(http.MethodPost, "/peers", tc.body)
+			if tc.bodyLimit > 0 {
+				req.Body = http.MaxBytesReader(rec, req.Body, tc.bodyLimit)
+			}
 
 			d.h.Create(rec, req)
 
