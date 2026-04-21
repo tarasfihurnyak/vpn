@@ -36,6 +36,7 @@ func TestUserHandler_Create(t *testing.T) {
 	tests := []struct {
 		name          string
 		body          string
+		bodyLimit     int64
 		expectedCode  int
 		expectedError bool
 	}{
@@ -43,11 +44,15 @@ func TestUserHandler_Create(t *testing.T) {
 		{name: "invalid json", body: `{bad}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "missing fields", body: `{"username":"alice"}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "short password", body: `{"username":"alice","email":"alice@example.com","password":"short"}`, expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "body too large", body: `{"username":"alice","email":"alice@example.com","password":"password123"}`, bodyLimit: 1, expectedCode: http.StatusRequestEntityTooLarge, expectedError: true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			req, rec := testutil.NewJSONRequest(http.MethodPost, "/users", tc.body)
+			if tc.bodyLimit > 0 {
+				req.Body = http.MaxBytesReader(rec, req.Body, tc.bodyLimit)
+			}
 
 			d.h.Create(rec, req)
 

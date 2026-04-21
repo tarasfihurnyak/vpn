@@ -22,6 +22,7 @@ func NewHTTP(users *user.Handler, peers *peer.Handler, authHandler *auth.Handler
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.StripSlashes)
+	r.Use(MaxBodySize(1 << 20)) // 1 MB
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

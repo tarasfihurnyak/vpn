@@ -39,6 +39,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	tests := []struct {
 		name         string
 		body         string
+		bodyLimit    int64 // 0 means no limit
 		expectedCode int
 	}{
 		{
@@ -61,12 +62,21 @@ func TestAuthHandler_Login(t *testing.T) {
 			body:         `{bad}`,
 			expectedCode: http.StatusBadRequest,
 		},
+		{
+			name:         "body too large",
+			body:         `{"login":"huser","password":"password123"}`,
+			bodyLimit:    1,
+			expectedCode: http.StatusRequestEntityTooLarge,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			req, rec := testutil.NewJSONRequest(http.MethodPost, "/auth/login", tc.body)
 			req = req.WithContext(ctx)
+			if tc.bodyLimit > 0 {
+				req.Body = http.MaxBytesReader(rec, req.Body, tc.bodyLimit)
+			}
 			h.Login(rec, req)
 
 			require.Equal(t, tc.expectedCode, rec.Code)
