@@ -2,9 +2,11 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/time/rate"
 
 	"vpn/internal/auth"
 	"vpn/internal/peer"
@@ -13,6 +15,9 @@ import (
 
 func NewHTTP(users *user.Handler, peers *peer.Handler, authHandler *auth.Handler, authMiddleware func(http.Handler) http.Handler, allowedOrigins []string) http.Handler {
 	r := chi.NewRouter()
+
+	// 5 req/min sustained, burst of 3 — applied per IP
+	loginLimiter := NewRateLimiter(rate.Every(time.Minute/5), 3)
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
@@ -24,7 +29,7 @@ func NewHTTP(users *user.Handler, peers *peer.Handler, authHandler *auth.Handler
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", authHandler.Login)
+			r.With(loginLimiter.Middleware).Post("/login", authHandler.Login)
 
 			r.Group(func(r chi.Router) {
 				r.Use(OriginCheck(allowedOrigins))
