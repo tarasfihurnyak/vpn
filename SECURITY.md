@@ -137,6 +137,7 @@ The following secrets must be protected:
 | Secret | Current Storage | Production Recommendation |
 | --- | --- | --- |
 | JWT ES256 private key | File on disk (`certs/jwt_private.pem`) | Mount from a secrets manager (Vault, AWS SSM); restrict file permissions to `0600` |
+| WireGuard server public key | `server_config` table in PostgreSQL | Read-only access; safe to distribute to authenticated clients |
 | Database password | `.env` file / Docker environment variable | Use a secrets manager or Docker secrets |
 | mkcert root CA private key | Local machine only (not committed) | Not applicable in production; use a real CA |
 
