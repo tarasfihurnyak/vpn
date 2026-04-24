@@ -32,7 +32,7 @@ A corporate VPN management system built in Go. The project is split into two log
 
 ## Overview
 
-The **control plane** is a REST API that acts as an admin panel for the VPN infrastructure. Administrators use it to manage users and WireGuard peers. Each peer record stores the public key and the assigned IP address that will be pushed to the WireGuard server once the data plane is implemented.
+The **control plane** is a REST API that acts as an admin panel for the VPN infrastructure. Administrators use it to manage users and WireGuard peers. Each peer record stores a name, public key, assigned IP address, and an enabled flag. The `allowed_ips` table defines which CIDRs are routed through the tunnel for each user. The `server_config` table holds the WireGuard server's public key, listen port, IP pool, and DNS — this is returned to the CLI client as part of the tunnel config so it can bring up its end of the tunnel. Once the data plane is implemented, peer configs will be pushed to the WireGuard server.
 
 ---
 
@@ -87,7 +87,7 @@ The **control plane** is a REST API that acts as an admin panel for the VPN infr
 ### Implemented
 
 - **User management** — create users, look up by ID; passwords stored as bcrypt hashes
-- **Peer management** — register WireGuard peers (public key + assigned IP address) per user
+- **Peer management** — register WireGuard peers (name, public key, assigned IP address, enabled flag) per user; per-user `allowed_ips` CIDRs define which traffic is routed through the tunnel
 - **Authentication**
   - Login with username or email
   - JWT access tokens (ES256, short-lived, default 15 min)
@@ -206,7 +206,7 @@ Protected routes require `Authorization: Bearer <access_token>`.
 | `POST` | `/api/auth/logout` | Cookie | Revoke the current refresh token |
 | `POST` | `/api/users` | JWT | Create a user |
 | `GET` | `/api/users/{id}` | JWT | Get user by UUID |
-| `POST` | `/api/peers` | JWT | Register a WireGuard peer |
+| `POST` | `/api/peers` | JWT | Register a WireGuard peer (name, public_key, ip_address) |
 | `GET` | `/api/peers/{id}` | JWT | Get peer by UUID |
 
 ---
@@ -258,10 +258,12 @@ make migrate-down
 - [ ] Multi-factor authentication — Google OIDC with domain restriction
 - [ ] Role-based access control (admin vs. regular user)
 - [ ] Peer enable / disable endpoint
+- [ ] Client tunnel config endpoint — returns server public key, endpoint, peer IP, and user `allowed_ips` CIDRs for WireGuard config generation
 
 ### Data Plane (separate component — not yet started)
 
 - [ ] WireGuard interface management (own and manage `wg0`)
+- [ ] Register server public key, listen port, IP pool, and DNS with the control plane on startup
 - [ ] gRPC (TLS) interface to receive peer config pushes from the control plane
 - [ ] Apply incoming peer changes to the kernel interface in real time
 
