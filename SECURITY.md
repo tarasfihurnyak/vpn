@@ -95,7 +95,7 @@ The control plane is an internal admin API. The assumed threat actors and scenar
 
 Cookie-based endpoints (`/api/auth/refresh`, `/api/auth/logout`) are protected by an **Origin header check**:
 
-- The `Origin` header must be present and must match one of the configured allowed origins (`JWT_ALLOWED_ORIGINS`).
+- The `Origin` header must be present and must match one of the configured allowed origins (`JWT_ALLOWED_ORIGINS`, default `https://localhost`).
 - Requests with a missing or disallowed origin are rejected with `403 Forbidden`.
 - This is appropriate because cookie-driven endpoints are only reached by browsers, which always send the `Origin` header on cross-site requests. Non-browser clients (curl, CLI tools) use `Authorization: Bearer` and never reach these routes.
 
@@ -108,8 +108,9 @@ Cookie-based endpoints (`/api/auth/refresh`, `/api/auth/logout`) are protected b
 ### Logging & Observability
 
 - Structured JSON logging via zerolog.
-- Sensitive values (passwords, token hashes, private keys) are never passed to the logger.
-- CSRF and rate-limit rejections are logged at `WARN` level with the offending IP and path for audit purposes.
+- Every HTTP request is logged (method, path, status code, duration, request ID) by the `RequestLogger` middleware.
+- Sensitive values (passwords, token hashes, private keys) are never passed to the logger. Login identifiers (username/email) are also omitted from error log entries to avoid leaking PII.
+- CSRF and rate-limit rejections are logged at `WARN` level with the offending path for audit purposes.
 
 ---
 
@@ -119,7 +120,6 @@ Cookie-based endpoints (`/api/auth/refresh`, `/api/auth/logout`) are protected b
 | --- | --- | --- |
 | No role-based access control | Any authenticated user can call any protected endpoint | Implement admin / user roles |
 | No 2FA / MFA | Compromised credentials give full access | TOTP (2FA) and Google OIDC with domain restriction |
-| No Swagger / API docs | Security review is harder without a formal spec | Generate OpenAPI spec |
 | WireGuard server private key handling | Not yet designed; server-side key must be protected | Document key storage strategy; consider hardware-backed secrets |
 | Secrets in `.env` file | `.env` can be accidentally committed or leaked | Use a secrets manager (Vault, AWS Secrets Manager) in production |
 | No audit log | No record of who created/modified peers or users | Add an audit log table |

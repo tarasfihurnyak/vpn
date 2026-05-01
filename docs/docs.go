@@ -371,7 +371,7 @@ const docTemplate = `{
                 "login": {
                     "description": "username or email",
                     "type": "string",
-                    "example": "admin@localhost"
+                    "example": "admin@gmail.com"
                 },
                 "password": {
                     "type": "string",

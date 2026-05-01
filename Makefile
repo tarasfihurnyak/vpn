@@ -26,7 +26,7 @@ tls-setup:
 		echo "Certificates generated in certs/"; \
 	fi
 
-up: tls-setup
+up:
 	docker compose up --build -d
 
 sqlc:

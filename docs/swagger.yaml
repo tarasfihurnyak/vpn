@@ -9,7 +9,7 @@ definitions:
     properties:
       login:
         description: username or email
-        example: admin@localhost
+        example: admin@gmail.com
         type: string
       password:
         example: ChangeMe123!

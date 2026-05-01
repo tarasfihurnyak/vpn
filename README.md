@@ -101,16 +101,19 @@ The **control plane** is a REST API that acts as an admin panel for the VPN infr
 - **Database**
   - Migrations run automatically on startup
   - Type-safe queries generated via sqlc
+- **Bootstrap admin user** — on first startup, if the `users` table is empty and `ADMIN_PASSWORD` is set, an admin account is automatically created so there is a user to log in with immediately
+- **API documentation** — interactive Scalar API docs UI available at `https://localhost/docs`; the raw OpenAPI spec is served at `https://localhost/docs/swagger.json`
+- **CORS** — `github.com/go-chi/cors` middleware allows browser-based clients (the Scalar UI and future frontends) to make cross-origin requests; allowed origins are configurable via `JWT_ALLOWED_ORIGINS`
 - **Infrastructure**
   - Multi-stage Docker build producing a lean Alpine image
   - Docker Compose stack: API + PostgreSQL + Traefik
   - HTTP → HTTPS redirect enforced at the Traefik level
   - `make tls-setup` generates locally trusted TLS certificates via mkcert
-  - Structured JSON logging
+  - Structured JSON request logging (method, path, status, duration, request ID) via zerolog
 
 ### Admin Panel (REST API)
 
-The REST API **is** the admin panel. There is no separate web UI — administrators interact with it over HTTP. All management operations (user creation, peer registration, token lifecycle) go through this API. A Swagger/OpenAPI specification is planned (see [Roadmap](#roadmap)).
+The REST API **is** the admin panel. There is no separate web UI — administrators interact with it over HTTP. All management operations (user creation, peer registration, token lifecycle) go through this API. An interactive API reference is available at `https://localhost/docs` once the stack is running.
 
 ---
 
@@ -141,27 +144,27 @@ cp .env.example .env
 
 See [Configuration](#configuration) for all variables.
 
-### 3. Trust the TLS certificate (first time only)
+### 3. Set up TLS (first time only)
 
-The stack uses mkcert to issue a certificate for `localhost`. Each machine that will send HTTPS requests to the API needs to trust the mkcert root CA.
+The stack uses mkcert to issue a locally trusted certificate for `localhost`.
 
 ```bash
-# Install the mkcert root CA into your system / browser trust store:
-mkcert -install
-
-# On other client machines (no mkcert installed):
-# Manually add certs/rootCA.pem to the OS trusted certificate store.
+make tls-setup
+# Installs the mkcert root CA into your system/browser trust store and
+# generates certs/cert.pem + certs/key.pem.
 ```
+
+On other machines that only send requests (no mkcert installed), manually add `certs/rootCA.pem` to the OS trusted certificate store.
 
 ### 4. Start the stack
 
 ```bash
 make up
 # Equivalent to: docker compose up --build -d
-# Certificates are generated automatically if they do not exist.
 ```
 
 The API is now available at `https://localhost/api`.
+The interactive API docs are available at `https://localhost/docs`.
 
 ### 5. Health check
 
@@ -188,13 +191,16 @@ All configuration is read from environment variables or a `.env` file in the pro
 | `JWT_ACCESS_TTL` | | `15m` | Access token lifetime |
 | `JWT_REFRESH_TTL` | | `168h` | Refresh token lifetime (7 days) |
 | `JWT_SECURE_COOKIE` | | `true` | Attach `Secure` flag to cookies |
-| `JWT_ALLOWED_ORIGINS` | | `http://localhost` | Comma-separated CSRF-allowed origins |
+| `JWT_ALLOWED_ORIGINS` | | `https://localhost` | Comma-separated CSRF-allowed origins (also used for CORS) |
+| `ADMIN_PASSWORD` | | — | If set **and** the `users` table is empty on startup, an admin account is created automatically. Remove after first run. |
+| `ADMIN_USERNAME` | | `admin` | Username for the bootstrap admin account |
+| `ADMIN_EMAIL` | | `admin@gmail.com` | Email for the bootstrap admin account |
 
 ---
 
 ## API Reference
 
-> A Swagger/OpenAPI spec is planned. The table below covers the current endpoints.
+An interactive Scalar API docs UI is available at `https://localhost/docs` once the stack is running. The raw OpenAPI (Swagger 2.0) spec is served at `https://localhost/docs/swagger.json`.
 
 Protected routes require `Authorization: Bearer <access_token>`.
 
@@ -253,7 +259,7 @@ make migrate-down
 
 ### Control Plane
 
-- [ ] Swagger / OpenAPI documentation
+- [x] Swagger / OpenAPI documentation + Scalar API docs UI
 - [ ] Two-factor authentication — TOTP (2FA)
 - [ ] Multi-factor authentication — Google OIDC with domain restriction
 - [ ] Role-based access control (admin vs. regular user)
