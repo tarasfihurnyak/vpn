@@ -27,6 +27,8 @@ services:
       - "8080"
     env_file:
       - .env
+    volumes:
+      - ./certs:/app/certs:ro
     depends_on:
       db:
         condition: service_healthy
