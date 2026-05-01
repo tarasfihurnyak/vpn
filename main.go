@@ -62,6 +62,7 @@ func main() {
 	q := sqlcdb.New(pool)
 
 	userSvc := user.NewService(q)
+	bootstrapAdmin(context.Background(), q, userSvc, cfg.Admin)
 	authSvc := auth.NewService(userSvc, q, ecKey, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 
 	userHandler := user.NewHandler(userSvc)
@@ -89,9 +90,25 @@ func main() {
 	<-quit
 
 	log.Info().Msg("shutting down")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := httpSrv.Shutdown(ctx); err != nil {
+	if err := httpSrv.Shutdown(shutCtx); err != nil {
 		log.Error().Err(err).Msg("shutdown error")
 	}
+}
+
+func bootstrapAdmin(ctx context.Context, q sqlcdb.Querier, svc *user.Service, cfg config.AdminUserConfig) {
+	if cfg.Password == "" {
+		return
+	}
+	users, err := q.ListUsers(ctx)
+	if err != nil || len(users) > 0 {
+		return
+	}
+	u, err := svc.Create(ctx, cfg.Username, cfg.Email, cfg.Password)
+	if err != nil {
+		log.Error().Err(err).Msg("bootstrap: failed to create initial admin user")
+		return
+	}
+	log.Warn().Str("username", u.Username).Str("email", u.Email).Msg("bootstrap: created initial admin user")
 }
