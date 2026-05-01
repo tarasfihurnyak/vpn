@@ -1,3 +1,17 @@
+// Package main is the VPN API server entry point.
+//
+// @title           VPN API
+// @version         1.0
+// @description     REST API for managing VPN users and WireGuard peers.
+//
+// @host      localhost
+// @BasePath  /api
+// @Schemes   https
+//
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and the JWT access token.
 package main
 
 import (

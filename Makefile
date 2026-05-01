@@ -1,4 +1,7 @@
-.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint tls-setup up gen-jwt-key
+.PHONY: sqlc migrate-new migrate-up migrate-down test test-migration test-service lint tls-setup up gen-jwt-key swag
+
+swag:
+	swag init -g main.go --output docs
 
 gen-jwt-key:
 	@mkdir -p certs

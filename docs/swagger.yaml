@@ -1,0 +1,316 @@
+basePath: /api
+definitions:
+  auth.TokenPair:
+    properties:
+      access_token:
+        type: string
+    type: object
+  auth.loginRequest:
+    properties:
+      login:
+        description: username or email
+        example: admin@localhost
+        type: string
+      password:
+        example: ChangeMe123!
+        type: string
+    type: object
+  httputil.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  peer.Peer:
+    properties:
+      created_at:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      ip_address:
+        example: 10.0.0.1
+        type: string
+      name:
+        type: string
+      public_key:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  peer.createRequest:
+    properties:
+      ip_address:
+        type: string
+      name:
+        type: string
+      public_key:
+        type: string
+      user_id:
+        type: string
+    type: object
+  user.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      public_key:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  user.createRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost
+info:
+  contact: {}
+  description: REST API for managing VPN users and WireGuard peers.
+  title: VPN API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate with username/email and password. Returns an access
+        token and sets an httpOnly refresh cookie.
+      parameters:
+      - description: Credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.TokenPair'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      summary: Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: |-
+        Revoke the refresh token and clear the httpOnly cookie.
+        **Requires `Origin` header** matching an allowed origin (CSRF protection). Example: `Origin: https://localhost`.
+      parameters:
+      - description: Allowed origin for CSRF protection, e.g. https://localhost
+        in: header
+        name: Origin
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: missing or disallowed Origin header
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      summary: Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      description: |-
+        Rotate the refresh token (read from httpOnly cookie) and return a new token pair.
+        **Requires `Origin` header** matching an allowed origin (CSRF protection). Example: `Origin: https://localhost`.
+      parameters:
+      - description: Allowed origin for CSRF protection, e.g. https://localhost
+        in: header
+        name: Origin
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.TokenPair'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "403":
+          description: missing or disallowed Origin header
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      summary: Refresh tokens
+      tags:
+      - auth
+  /peers:
+    post:
+      consumes:
+      - application/json
+      description: Register a new WireGuard peer for a user.
+      parameters:
+      - description: Peer details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/peer.createRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/peer.Peer'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create peer
+      tags:
+      - peers
+  /peers/{id}:
+    get:
+      description: Retrieve a WireGuard peer by ID.
+      parameters:
+      - description: Peer UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/peer.Peer'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get peer
+      tags:
+      - peers
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account.
+      parameters:
+      - description: User details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.createRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create user
+      tags:
+      - users
+  /users/{id}:
+    get:
+      description: Retrieve a user by ID.
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user
+      tags:
+      - users
+schemes:
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and the JWT access token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

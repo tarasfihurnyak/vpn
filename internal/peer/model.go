@@ -15,7 +15,7 @@ type Peer struct {
 	UserID    uuid.UUID  `json:"user_id"`
 	Name      string     `json:"name"`
 	PublicKey string     `json:"public_key"`
-	IPAddress netip.Addr `json:"ip_address"`
+	IPAddress netip.Addr `json:"ip_address" swaggertype:"string" example:"10.0.0.1"`
 	Enabled   bool       `json:"enabled"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
