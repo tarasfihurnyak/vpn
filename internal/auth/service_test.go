@@ -6,13 +6,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"vpn/internal/auth"
+	"vpn/internal/testutil"
 )
 
 func TestAuthService_Login(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 
-	_, err := userSvc.Create(ctx, "loginuser", "loginuser@example.com", "hunter2password")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "loginuser")
 
 	tests := []struct {
 		name          string
@@ -20,10 +20,10 @@ func TestAuthService_Login(t *testing.T) {
 		password      string
 		expectedError error
 	}{
-		{name: "by username", login: "loginuser", password: "hunter2password"},
-		{name: "by email", login: "loginuser@example.com", password: "hunter2password"},
-		{name: "wrong password", login: "loginuser", password: "wrongpassword", expectedError: auth.ErrInvalidCredentials},
-		{name: "user not found", login: "ghost", password: "hunter2password", expectedError: auth.ErrInvalidCredentials},
+		{name: "by username", login: u.Username, password: testutil.Password},
+		{name: "by email", login: u.Email, password: testutil.Password},
+		{name: "wrong password", login: u.Username, password: "wrongpassword", expectedError: auth.ErrInvalidCredentials},
+		{name: "user not found", login: "ghost", password: testutil.Password, expectedError: auth.ErrInvalidCredentials},
 	}
 
 	for _, tc := range tests {
@@ -43,11 +43,10 @@ func TestAuthService_Login(t *testing.T) {
 func TestAuthService_Refresh(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 
-	_, err := userSvc.Create(ctx, "refreshuser", "refreshuser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "refreshuser")
 
 	t.Run("success", func(t *testing.T) {
-		_, rawRefresh, err := svc.Login(ctx, "refreshuser", "password123")
+		_, rawRefresh, err := svc.Login(ctx, u.Username, testutil.Password)
 		require.NoError(t, err)
 
 		pair2, rawRefresh2, err := svc.Refresh(ctx, rawRefresh)
@@ -58,7 +57,7 @@ func TestAuthService_Refresh(t *testing.T) {
 	})
 
 	t.Run("old token revoked after rotation", func(t *testing.T) {
-		_, rawRefresh, err := svc.Login(ctx, "refreshuser", "password123")
+		_, rawRefresh, err := svc.Login(ctx, u.Username, testutil.Password)
 		require.NoError(t, err)
 
 		_, _, err = svc.Refresh(ctx, rawRefresh)
@@ -77,10 +76,9 @@ func TestAuthService_Refresh(t *testing.T) {
 func TestAuthService_Logout(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 
-	_, err := userSvc.Create(ctx, "logoutuser", "logoutuser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "logoutuser")
 
-	_, rawRefresh, err := svc.Login(ctx, "logoutuser", "password123")
+	_, rawRefresh, err := svc.Login(ctx, u.Username, testutil.Password)
 	require.NoError(t, err)
 
 	require.NoError(t, svc.Logout(ctx, rawRefresh))
@@ -92,10 +90,9 @@ func TestAuthService_Logout(t *testing.T) {
 func TestAuthService_ValidateAccessToken(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 
-	u, err := userSvc.Create(ctx, "tokenuser", "tokenuser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "tokenuser")
 
-	pair, _, err := svc.Login(ctx, "tokenuser", "password123")
+	pair, _, err := svc.Login(ctx, u.Username, testutil.Password)
 	require.NoError(t, err)
 
 	tests := []struct {

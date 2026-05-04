@@ -3,6 +3,7 @@ package auth_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,12 +12,13 @@ import (
 
 	"vpn/internal/auth"
 	"vpn/internal/testutil"
+	"vpn/internal/user"
 )
 
-func loginAndGetCookie(t *testing.T, h *auth.Handler, ctx context.Context, login, password string) *http.Cookie {
+func loginAndGetCookie(t *testing.T, h *auth.Handler, ctx context.Context, u user.User, password string) *http.Cookie {
 	t.Helper()
 	req, rec := testutil.NewJSONRequest(http.MethodPost, "/auth/login",
-		`{"login":"`+login+`","password":"`+password+`"}`)
+		fmt.Sprintf(`{"login":%q,"password":%q}`, u.Username, password))
 	req = req.WithContext(ctx)
 	h.Login(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
@@ -33,8 +35,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 	h := auth.NewHandler(svc, false)
 
-	_, err := userSvc.Create(ctx, "huser", "huser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "huser")
 
 	tests := []struct {
 		name         string
@@ -44,17 +45,17 @@ func TestAuthHandler_Login(t *testing.T) {
 	}{
 		{
 			name:         "ok",
-			body:         `{"login":"huser","password":"password123"}`,
+			body:         fmt.Sprintf(`{"login":%q,"password":%q}`, u.Username, testutil.Password),
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "invalid credentials",
-			body:         `{"login":"huser","password":"wrongpassword"}`,
+			body:         fmt.Sprintf(`{"login":%q,"password":"wrongpassword"}`, u.Username),
 			expectedCode: http.StatusUnauthorized,
 		},
 		{
 			name:         "missing password",
-			body:         `{"login":"huser"}`,
+			body:         fmt.Sprintf(`{"login":%q}`, u.Username),
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -64,7 +65,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		},
 		{
 			name:         "body too large",
-			body:         `{"login":"huser","password":"password123"}`,
+			body:         fmt.Sprintf(`{"login":%q,"password":%q}`, u.Username, testutil.Password),
 			bodyLimit:    1,
 			expectedCode: http.StatusRequestEntityTooLarge,
 		},
@@ -106,10 +107,9 @@ func TestAuthHandler_Refresh(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 	h := auth.NewHandler(svc, false)
 
-	_, err := userSvc.Create(ctx, "ruser", "ruser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "ruser")
 
-	validCookie := loginAndGetCookie(t, h, ctx, "ruser", "password123")
+	validCookie := loginAndGetCookie(t, h, ctx, u, testutil.Password)
 
 	tests := []struct {
 		name         string
@@ -153,10 +153,9 @@ func TestAuthHandler_Logout(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 	h := auth.NewHandler(svc, false)
 
-	_, err := userSvc.Create(ctx, "luser", "luser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "luser")
 
-	validCookie := loginAndGetCookie(t, h, ctx, "luser", "password123")
+	validCookie := loginAndGetCookie(t, h, ctx, u, testutil.Password)
 
 	tests := []struct {
 		name         string
@@ -200,11 +199,10 @@ func TestAuthHandler_Middleware(t *testing.T) {
 	svc, userSvc, ctx := newDeps(t)
 	h := auth.NewHandler(svc, false)
 
-	_, err := userSvc.Create(ctx, "mwuser", "mwuser@example.com", "password123")
-	require.NoError(t, err)
+	u := testutil.CreateUser(t, userSvc, ctx, "mwuser")
 
 	loginReq, loginRec := testutil.NewJSONRequest(http.MethodPost, "/auth/login",
-		`{"login":"mwuser","password":"password123"}`)
+		fmt.Sprintf(`{"login":%q,"password":%q}`, u.Username, testutil.Password))
 	loginReq = loginReq.WithContext(ctx)
 	h.Login(loginRec, loginReq)
 	require.Equal(t, http.StatusOK, loginRec.Code)

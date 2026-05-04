@@ -9,6 +9,7 @@ import (
 
 	sqlcdb "vpn/internal/db/sqlc"
 	"vpn/internal/peer"
+	"vpn/internal/testutil"
 	"vpn/internal/user"
 )
 
@@ -20,13 +21,6 @@ func newSvcs(t *testing.T) (*user.Service, *peer.Service, context.Context) {
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	q := sqlcdb.New(tx)
 	return user.NewServiceWithMinBcryptCost(q), peer.NewService(q), ctx
-}
-
-func createTestUser(t *testing.T, svc *user.Service, ctx context.Context, username string) user.User {
-	t.Helper()
-	u, err := svc.Create(ctx, username, username+"@example.com", "testpassword123")
-	require.NoError(t, err)
-	return u
 }
 
 func TestPeerService_Create(t *testing.T) {
@@ -43,7 +37,7 @@ func TestPeerService_Create(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			userSvc, peerSvc, ctx := newSvcs(t)
-			u := createTestUser(t, userSvc, ctx, "peer-owner-create-"+tc.name)
+			u := testutil.CreateUser(t, userSvc, ctx, "peer-owner-create-"+tc.name)
 
 			p, err := peerSvc.Create(ctx, u.ID, tc.pName, tc.pubkey, tc.addr)
 			require.NoError(t, err)
@@ -56,7 +50,7 @@ func TestPeerService_Create(t *testing.T) {
 
 func TestPeerService_GetByID(t *testing.T) {
 	userSvc, peerSvc, ctx := newSvcs(t)
-	u := createTestUser(t, userSvc, ctx, "peer-owner-getbyid")
+	u := testutil.CreateUser(t, userSvc, ctx, "peer-owner-getbyid")
 
 	created, err := peerSvc.Create(ctx, u.ID, "phone", "pubkey-phone", netip.MustParseAddr("10.0.0.3"))
 	require.NoError(t, err)
@@ -68,7 +62,7 @@ func TestPeerService_GetByID(t *testing.T) {
 
 func TestPeerService_GetByPublicKey(t *testing.T) {
 	userSvc, peerSvc, ctx := newSvcs(t)
-	u := createTestUser(t, userSvc, ctx, "peer-owner-getbypubkey")
+	u := testutil.CreateUser(t, userSvc, ctx, "peer-owner-getbypubkey")
 
 	created, err := peerSvc.Create(ctx, u.ID, "tablet", "pubkey-tablet-unique", netip.MustParseAddr("10.0.0.4"))
 	require.NoError(t, err)
@@ -80,7 +74,7 @@ func TestPeerService_GetByPublicKey(t *testing.T) {
 
 func TestPeerService_ListByUser(t *testing.T) {
 	userSvc, peerSvc, ctx := newSvcs(t)
-	u := createTestUser(t, userSvc, ctx, "peer-owner-list")
+	u := testutil.CreateUser(t, userSvc, ctx, "peer-owner-list")
 
 	created, err := peerSvc.Create(ctx, u.ID, "device", "pubkey-device-list", netip.MustParseAddr("10.0.0.5"))
 	require.NoError(t, err)
@@ -92,7 +86,7 @@ func TestPeerService_ListByUser(t *testing.T) {
 
 func TestPeerService_EnableDisable(t *testing.T) {
 	userSvc, peerSvc, ctx := newSvcs(t)
-	u := createTestUser(t, userSvc, ctx, "peer-owner-enabledisable")
+	u := testutil.CreateUser(t, userSvc, ctx, "peer-owner-enabledisable")
 
 	p, err := peerSvc.Create(ctx, u.ID, "desktop", "pubkey-desktop", netip.MustParseAddr("10.0.0.6"))
 	require.NoError(t, err)
@@ -119,7 +113,7 @@ func TestPeerService_EnableDisable(t *testing.T) {
 
 func TestPeerService_ListEnabled(t *testing.T) {
 	userSvc, peerSvc, ctx := newSvcs(t)
-	u := createTestUser(t, userSvc, ctx, "peer-owner-listenabled")
+	u := testutil.CreateUser(t, userSvc, ctx, "peer-owner-listenabled")
 
 	p, err := peerSvc.Create(ctx, u.ID, "router", "pubkey-router", netip.MustParseAddr("10.0.0.7"))
 	require.NoError(t, err)
