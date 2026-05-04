@@ -78,6 +78,7 @@ func NewHTTP(users *user.Handler, peers *peer.Handler, authHandler *auth.Handler
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware)
 
+			r.Get("/users", users.List)
 			r.Post("/users", users.Create)
 			r.Get("/users/{id}", users.GetByID)
 

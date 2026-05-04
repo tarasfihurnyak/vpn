@@ -86,7 +86,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 // @Router       /users/{id} [get]
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		log.Error().Err(err).Str("id", chi.URLParam(r, "id")).Msg("get user: invalid id")
 		pkghttp.WriteError(w, http.StatusBadRequest, "invalid id")
 		return
@@ -105,4 +105,23 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pkghttp.WriteJSON(w, http.StatusOK, u)
+}
+
+// @Summary      List users
+// @Description  Retrieve all users.
+// @Tags         users
+// @Produce      json
+// @Success      200  {array}   User
+// @Failure      500  {object}  pkghttp.ErrorResponse
+// @Security     BearerAuth
+// @Router       /users [get]
+func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+	users, err := h.svc.List(r.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("list users: internal error")
+		pkghttp.WriteError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	pkghttp.WriteJSON(w, http.StatusOK, users)
 }

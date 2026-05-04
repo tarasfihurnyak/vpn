@@ -75,25 +75,23 @@ func TestUserHandler_GetByID(t *testing.T) {
 	d := newDeps(t)
 
 	// preconditions
-	u, err := d.svc.Create(d.ctx, "bob", "bob@example.com", "password123")
-	require.NoError(t, err)
-	existingID := u.ID.String()
+	u := testutil.CreateUser(t, d.svc, d.ctx, "bob")
 
 	tests := []struct {
 		name          string
-		id            string
+		id            uuid.UUID
 		expectedCode  int
 		expectedError bool
 	}{
-		{name: "ok", id: existingID, expectedCode: http.StatusOK},
-		{name: "invalid id", id: "not-a-uuid", expectedCode: http.StatusBadRequest, expectedError: true},
-		{name: "not found", id: uuid.New().String(), expectedCode: http.StatusNotFound, expectedError: true},
+		{name: "ok", id: u.ID, expectedCode: http.StatusOK},
+		{name: "invalid id", id: uuid.Nil, expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "not found", id: uuid.New(), expectedCode: http.StatusNotFound, expectedError: true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req, rec := testutil.NewJSONRequest(http.MethodGet, "/users/"+tc.id, "")
-			req = testutil.WithURLParam(req, "id", tc.id)
+			req, rec := testutil.NewJSONRequest(http.MethodGet, "/users/"+tc.id.String(), "")
+			req = testutil.WithURLParam(req, "id", tc.id.String())
 
 			d.h.GetByID(rec, req)
 
@@ -105,8 +103,26 @@ func TestUserHandler_GetByID(t *testing.T) {
 
 			var got user.User
 			require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
-			require.Equal(t, u.ID, got.ID)
+			require.Equal(t, tc.id, got.ID)
 			require.Equal(t, "bob", got.Username)
 		})
 	}
+}
+
+func TestUserHandler_List(t *testing.T) {
+	d := newDeps(t)
+
+	u1 := testutil.CreateUser(t, d.svc, d.ctx, "alice")
+	u2 := testutil.CreateUser(t, d.svc, d.ctx, "bob")
+
+	req, rec := testutil.NewJSONRequest(http.MethodGet, "/users", "")
+	d.h.List(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+
+	var got []user.User
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
+	require.Len(t, got, 2)
+	require.ElementsMatch(t, []user.User{u1, u2}, got)
 }

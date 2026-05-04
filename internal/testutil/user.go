@@ -9,9 +9,11 @@ import (
 	"vpn/internal/user"
 )
 
+const Password = "testpassword123"
+
 func CreateUser(t *testing.T, svc *user.Service, ctx context.Context, name string) user.User {
 	t.Helper()
-	u, err := svc.Create(ctx, name, name+"@example.com", "testpassword123")
+	u, err := svc.Create(ctx, name, name+"@example.com", Password)
 	require.NoError(t, err)
 	return u
 }
