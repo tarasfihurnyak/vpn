@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	pkghttp "vpn/pkg/http"
 )
@@ -60,9 +61,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, err := uuid.Parse(req.UserID)
-	if err != nil {
+	if err != nil || userID == uuid.Nil {
 		log.Error().Err(err).Str("user_id", req.UserID).Msg("create peer: invalid user_id")
 		pkghttp.WriteError(w, http.StatusBadRequest, "invalid user_id")
+		return
+	}
+
+	if _, err := wgtypes.ParseKey(req.PublicKey); err != nil {
+		log.Error().Err(err).Msg("create peer: invalid public_key")
+		pkghttp.WriteError(w, http.StatusBadRequest, "public_key must be a valid WireGuard public key")
 		return
 	}
 

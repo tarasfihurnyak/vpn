@@ -41,10 +41,12 @@ func TestPeerHandler_Create(t *testing.T) {
 
 	// preconditions
 	u := testutil.CreateUser(t, d.users, d.ctx, "create-owner")
-	validBody := fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"pubkey-abc","ip_address":"10.0.0.2"}`,
-		u.ID.String())
-	badIPBody := fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"k","ip_address":"not-an-ip"}`,
-		u.ID.String())
+
+	const validKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	validBody := fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"%s","ip_address":"10.0.0.2"}`,
+		u.ID.String(), validKey)
+	badIPBody := fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"%s","ip_address":"not-an-ip"}`,
+		u.ID.String(), validKey)
 
 	tests := []struct {
 		name          string
@@ -57,6 +59,9 @@ func TestPeerHandler_Create(t *testing.T) {
 		{name: "invalid json", body: `{bad}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "missing fields", body: `{"name":"laptop"}`, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "invalid user_id", body: `{"user_id":"not-a-uuid","name":"laptop","public_key":"k","ip_address":"10.0.0.1"}`, expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "nil user_id", body: fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"%s","ip_address":"10.0.0.1"}`, uuid.Nil, validKey), expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "invalid public_key not base64", body: fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"not-a-key","ip_address":"10.0.0.1"}`, u.ID), expectedCode: http.StatusBadRequest, expectedError: true},
+		{name: "invalid public_key wrong length", body: fmt.Sprintf(`{"user_id":"%s","name":"laptop","public_key":"aGVsbG8=","ip_address":"10.0.0.1"}`, u.ID), expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "invalid ip_address", body: badIPBody, expectedCode: http.StatusBadRequest, expectedError: true},
 		{name: "body too large", body: validBody, bodyLimit: 1, expectedCode: http.StatusRequestEntityTooLarge, expectedError: true},
 	}
@@ -80,6 +85,7 @@ func TestPeerHandler_Create(t *testing.T) {
 			require.NoError(t, json.NewDecoder(rec.Body).Decode(&got))
 			require.Equal(t, "laptop", got.Name)
 			require.Equal(t, u.ID, got.UserID)
+			require.Equal(t, validKey, got.PublicKey)
 			require.Equal(t, "10.0.0.2", got.IPAddress.String())
 			require.True(t, got.Enabled)
 		})
