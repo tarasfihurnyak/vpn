@@ -37,8 +37,8 @@ func toModel(u db.User) User {
 		Username:  u.Username,
 		Email:     u.Email,
 		PublicKey: pk,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		CreatedAt: u.CreatedAt.UTC(),
+		UpdatedAt: u.UpdatedAt.UTC(),
 	}
 }
 

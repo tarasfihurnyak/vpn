@@ -27,8 +27,8 @@ func toModel(p db.Peer) Peer {
 		PublicKey: p.PublicKey,
 		IPAddress: p.IpAddress,
 		Enabled:   p.Enabled,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
+		CreatedAt: p.CreatedAt.UTC(),
+		UpdatedAt: p.UpdatedAt.UTC(),
 	}
 }
 
